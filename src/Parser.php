@@ -268,7 +268,7 @@ class Parser
 
         foreach ($block->data->items as $item) {
             $li = $this->dom->createElement('li');
-            $li->appendChild($this->html5->loadHTMLFragment($item));
+            $li->appendChild($this->html5->loadHTMLFragment($item->content));
             $list->appendChild($li);
         }
 

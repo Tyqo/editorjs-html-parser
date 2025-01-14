@@ -17,7 +17,7 @@
         "test": "vendor/bin/phpunit tests/ --coverage-clover=coverage.xml"
     },
     "require": {
-        "php": ">=7.3",
+        "php": ">=8.1",
         "ext-dom": "*",
         "ext-json": "*",
         "masterminds/html5": "^2.7@dev"

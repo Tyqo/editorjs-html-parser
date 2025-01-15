@@ -6,492 +6,473 @@ use DOMDocument;
 use DOMText;
 use Masterminds\HTML5;
 
-class Parser
-{
-    /**
-     * @var Config
-     */
-    protected $config;
-    
-    /**
-     * @var StdClass
-     */
-    protected $data;
-
-    /**
-     * @var DOMDocument
-     */
-    protected $dom;
-
-    /**
-     * @var HTML5
-     */
-    protected $html5;
-
-    /**
-     * @var string
-     */
-    protected $prefix;
-
-    public function __construct(string $data)
-    {
-        $this->config = new Config();
-
-        $this->prefix = $this->config->getPrefix();
-
-        $this->data = json_decode($data);
-
-        $this->dom = new DOMDocument(1.0, 'UTF-8');
-
-        $this->html5 = new HTML5([
-            'target_document' => $this->dom,
-            'disable_html_ns' => true
-        ]);
-    }
-
-    static function parse($data)
-    {
-        return new static($data);
-    }
-
-    /**
-     * @return string
-     */
-    public function getPrefix(): string
-    {
-        return !empty($this->prefix) ? $this->prefix : $this->config->getPrefix();
-    }
-
-    /**
-     * @param string $prefix
-     */
-    public function setPrefix(string $prefix): void
-    {
-        $this->prefix = $prefix;
-    }
-
-    public function getTime()
-    {
-        return isset($this->data->time) ? $this->data->time : null;
-    }
-
-    public function getVersion()
-    {
-        return isset($this->data->version) ? $this->data->version : null;
-    }
-
-    public function getBlocks()
-    {
-        return isset($this->data->blocks) ? $this->data->blocks : null;
-    }
-
-    public function toHtml()
-    {
-        $this->init();
-
-        return html_entity_decode($this->dom->saveHTML());
-    }
-
-    /**
-     * @throws ParserException
-     */
-    protected function init()
-    {
-        if (!$this->hasBlocks()) throw new ParserException('No blocks to parse !');
-        foreach ($this->data->blocks as $block) {
-            $method = 'parse'.ucfirst($block->type);
-            if (method_exists($this, $method)) {
-                $this->{$method}($block);
-            } else {
-                throw new ParserException('Unknow block '.$block->type.' !');
-            }
-        }
-    }
+class Parser {
+	/**
+	 * @var Config
+	 */
+	protected $config;
+
+	/**
+	 * @var StdClass
+	 */
+	protected $data;
+
+	/**
+	 * @var DOMDocument
+	 */
+	protected $dom;
+
+	/**
+	 * @var HTML5
+	 */
+	protected $html5;
+
+	/**
+	 * @var string
+	 */
+	protected $prefix;
+
+	public function __construct(string $data) {
+		$this->config = new Config();
+
+		$this->prefix = $this->config->getPrefix();
+
+		$this->data = json_decode($data);
+
+		$this->dom = new DOMDocument(1.0, 'UTF-8');
+
+		$this->html5 = new HTML5([
+			'target_document' => $this->dom,
+			'disable_html_ns' => true
+		]);
+	}
+
+	static function parse($data) {
+		return new static($data);
+	}
 
-    protected function hasBlocks()
-    {
-        return count($this->data->blocks) !== 0;
-    }
+	/**
+	 * @return string
+	 */
+	public function getPrefix(): string {
+		return !empty($this->prefix) ? $this->prefix : $this->config->getPrefix();
+	}
 
-    protected function addClass($type, $alignment = false, $style = false)
-    {
-        $class[] = $this->prefix.'-'.$type;
-        
-        if ($alignment) {
-            $class[] = $this->prefix.'_'.$alignment;
-        }
+	/**
+	 * @param string $prefix
+	 */
+	public function setPrefix(string $prefix): void {
+		$this->prefix = $prefix;
+	}
 
-        if ($style) {
-            $styles = explode(' ', $style);
-            foreach ($styles as $v) {
-                $class[] = $this->prefix.'_'.$v;
-            }            
-        }
-        
-        return implode(' ', $class);
-    }
+	public function getTime() {
+		return isset($this->data->time) ? $this->data->time : null;
+	}
 
-    private function parseHeader($block)
-    {
-        $text = new DOMText($block->data->text);
+	public function getVersion() {
+		return isset($this->data->version) ? $this->data->version : null;
+	}
 
-        $alignment = isset($block->data->alignment) ? $block->data->alignment : false;
+	public function getBlocks() {
+		return isset($this->data->blocks) ? $this->data->blocks : null;
+	}
 
-        $class = $this->addClass($block->type, $alignment);
+	public function toHtml() {
+		$this->init();
 
-        $header = $this->dom->createElement('h' . $block->data->level);
+		return html_entity_decode($this->dom->saveHTML());
+	}
 
-        $header->setAttribute('class', $class);
+	/**
+	 * @throws ParserException
+	 */
+	protected function init() {
+		if (!$this->hasBlocks())
+			throw new ParserException('No blocks to parse !');
+		foreach ($this->data->blocks as $block) {
+			$method = 'parse' . ucfirst($block->type);
+			if (method_exists($this, $method)) {
+				$this->{$method}($block);
+			} else {
+				throw new ParserException('Unknow block ' . $block->type . ' !');
+			}
+		}
+	}
 
-        $header->appendChild($text);
+	protected function hasBlocks() {
+		return count($this->data->blocks) !== 0;
+	}
 
-        $this->dom->appendChild($header);
-    }
+	protected function addClass($type, $alignment = false, $style = false) {
+		$class[] = $this->prefix . '-' . $type;
 
-    private function parseDelimiter($block)
-    {
-        $node = $this->dom->createElement('hr');
+		if ($alignment) {
+			$class[] = $this->prefix . '_' . $alignment;
+		}
 
-        $node->setAttribute('class', $this->addClass($block->type));
+		if ($style) {
+			$styles = explode(' ', $style);
+			foreach ($styles as $v) {
+				$class[] = $this->prefix . '_' . $v;
+			}
+		}
 
-        $this->dom->appendChild($node);
-    }
+		return implode(' ', $class);
+	}
 
-    private function parseCode($block)
-    {
-        $pre = $this->dom->createElement('pre');
+	private function parseHeader($block) {
+		$text = new DOMText($block->data->text);
 
-        $pre->setAttribute('class', $this->addClass($block->type));
+		$alignment = isset($block->data->alignment) ? $block->data->alignment : false;
 
-        $code = $this->dom->createElement('code');
+		$class = $this->addClass($block->type, $alignment);
 
-        $content = new DOMText($block->data->code);
+		$header = $this->dom->createElement('h' . $block->data->level);
 
-        $code->appendChild($content);
+		$header->setAttribute('class', $class);
 
-        $pre->appendChild($code);
+		$header->appendChild($text);
 
-        $this->dom->appendChild($pre);
-    }
+		$this->dom->appendChild($header);
+	}
 
-    private function parseParagraph($block)
-    {
-        $alignment = isset($block->data->alignment) ? $block->data->alignment : false;
+	private function parseDelimiter($block) {
+		$node = $this->dom->createElement('hr');
 
-        $class = $this->addClass($block->type, $alignment);
+		$node->setAttribute('class', $this->addClass($block->type));
 
-        $node = $this->dom->createElement('p');
+		$this->dom->appendChild($node);
+	}
 
-        $node->setAttribute('class', $class);
+	private function parseCode($block) {
+		$pre = $this->dom->createElement('pre');
 
-        $node->appendChild($this->html5->loadHTMLFragment($block->data->text));
+		$pre->setAttribute('class', $this->addClass($block->type));
 
-        $this->dom->appendChild($node);
-    }
+		$code = $this->dom->createElement('code');
 
-    private function parseEmbed($block)
-    {
-        $figure = $this->dom->createElement('figure');
-        
-        $class = $this->addClass($block->type, false, $block->data->service);
+		$content = new DOMText($block->data->code);
 
-        $figure->setAttribute('class', $class);
+		$code->appendChild($content);
 
-        switch ($block->data->service) {
-            case 'youtube':
+		$pre->appendChild($code);
 
-                $attrs = [
-                    'width' => $block->data->width,
-                    'height' => $block->data->height,
-                    'src' => $block->data->embed,
-                    'allow' => 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share',
-                    'allowfullscreen' => true
-                ];
+		$this->dom->appendChild($pre);
+	}
 
-                break;
-            // case 'codepen' || 'gfycat':
-            default:
+	private function parseParagraph($block) {
+		$alignment = isset($block->data->alignment) ? $block->data->alignment : false;
 
-                $attrs = [
-                    'height' => $block->data->height,
-                    'src' => $block->data->embed,
-                ];
-        }
+		$class = $this->addClass($block->type, $alignment);
 
-        $figure->appendChild($this->createIframe($attrs));
+		$node = $this->dom->createElement('p');
 
-        if ($block->data->caption) {
-            $figCaption = $this->dom->createElement('figcaption');
-            $figCaption->appendChild($this->html5->loadHTMLFragment($block->data->caption));
-            $figure->appendChild($figCaption);
-        }
+		$node->setAttribute('class', $class);
 
-        $this->dom->appendChild($figure);
-    }
+		$node->appendChild($this->html5->loadHTMLFragment($block->data->text));
 
-    private function createIframe(array $attrs)
-    {
-        $iframe = $this->dom->createElement('iframe');
+		$this->dom->appendChild($node);
+	}
 
-        foreach ($attrs as $key => $attr) $iframe->setAttribute($key, $attr);
+	private function parseEmbed($block) {
+		$figure = $this->dom->createElement('figure');
 
-        return $iframe;
-    }
+		$class = $this->addClass($block->type, false, $block->data->service);
 
-    private function parseRaw($block)
-    {
-        $class = $this->addClass($block->type);
+		$figure->setAttribute('class', $class);
 
-        $wrapper = $this->dom->createElement('div');
+		switch ($block->data->service) {
+			case 'youtube':
 
-        $wrapper->setAttribute('class', $class);
+				$attrs = [
+					'width' => $block->data->width,
+					'height' => $block->data->height,
+					'src' => $block->data->embed,
+					'allow' => 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share',
+					'allowfullscreen' => true
+				];
 
-        $wrapper->appendChild($this->html5->loadHTMLFragment($block->data->html));
+				break;
+			// case 'codepen' || 'gfycat':
+			default:
 
-        $this->dom->appendChild($wrapper);
-    }
+				$attrs = [
+					'height' => $block->data->height,
+					'src' => $block->data->embed,
+				];
+		}
 
-    private function parseList($block)
-    {
-        $class = $this->addClass($block->type, false, $block->data->style);
+		$figure->appendChild($this->createIframe($attrs));
 
-        $list = null;
+		if ($block->data->caption) {
+			$figCaption = $this->dom->createElement('figcaption');
+			$figCaption->appendChild($this->html5->loadHTMLFragment($block->data->caption));
+			$figure->appendChild($figCaption);
+		}
 
-        switch ($block->data->style) {
-            case 'ordered':
-                $list = $this->dom->createElement('ol');
-                break;
-            default:
-                $list = $this->dom->createElement('ul');
-                break;
-        }
+		$this->dom->appendChild($figure);
+	}
 
-        foreach ($block->data->items as $item) {
-            $li = $this->dom->createElement('li');
-            $li->appendChild($this->html5->loadHTMLFragment($item->content));
-            $list->appendChild($li);
-        }
+	private function createIframe(array $attrs) {
+		$iframe = $this->dom->createElement('iframe');
 
-        $list->setAttribute('class', $class);
+		foreach ($attrs as $key => $attr)
+			$iframe->setAttribute($key, $attr);
 
-        $this->dom->appendChild($list);
-    }
+		return $iframe;
+	}
 
-    private function parseWarning($block)
-    {
-        $title = new DOMText($block->data->title);
-        $message = new DOMText($block->data->message);
+	private function parseRaw($block) {
+		$class = $this->addClass($block->type);
 
-        $class = $this->addClass($block->type);
+		$wrapper = $this->dom->createElement('div');
 
-        $wrapper = $this->dom->createElement('div');
+		$wrapper->setAttribute('class', $class);
 
-        $wrapper->setAttribute('class', $class);
+		$wrapper->appendChild($this->html5->loadHTMLFragment($block->data->html));
 
-        $textWrapper = $this->dom->createElement('div');
-        $titleWrapper = $this->dom->createElement('h4');
+		$this->dom->appendChild($wrapper);
+	}
 
-        $titleWrapper->appendChild($title);
-        $messageWrapper = $this->dom->createElement('p');
+	private function parseList($block) {
+		$class = $this->addClass($block->type, false, $block->data->style);
 
-        $messageWrapper->appendChild($message);
+		$list = null;
 
-        $textWrapper->appendChild($titleWrapper);
-        $textWrapper->appendChild($messageWrapper);
+		switch ($block->data->style) {
+			case 'ordered':
+				$list = $this->dom->createElement('ol');
+				break;
+			default:
+				$list = $this->dom->createElement('ul');
+				break;
+		}
 
-        $icon = $this->dom->createElement('i');
+		foreach ($block->data->items as $item) {
+			$li = $this->dom->createElement('li');
+			$li->appendChild($this->html5->loadHTMLFragment($item->content));
+			$list->appendChild($li);
+		}
 
-        $wrapper->appendChild($icon);
-        $wrapper->appendChild($textWrapper);
+		$list->setAttribute('class', $class);
 
-        $this->dom->appendChild($wrapper);
-    }
+		$this->dom->appendChild($list);
+	}
 
-    private function parseAlert($block)
-    {
-        $alignment = isset($block->data->align) ? $block->data->align : false;
+	private function parseWarning($block) {
+		$title = new DOMText($block->data->title);
+		$message = new DOMText($block->data->message);
 
-        $style = isset($block->data->type) ? $block->data->type : false;
+		$class = $this->addClass($block->type);
 
-        $class = $this->addClass($block->type, $alignment, $style);
+		$wrapper = $this->dom->createElement('div');
 
-        $node = $this->dom->createElement('p');
+		$wrapper->setAttribute('class', $class);
 
-        $node->setAttribute('class', $class);
+		$textWrapper = $this->dom->createElement('div');
+		$titleWrapper = $this->dom->createElement('h4');
 
-        $node->appendChild(new DOMText($block->data->message));
+		$titleWrapper->appendChild($title);
+		$messageWrapper = $this->dom->createElement('p');
 
-        $this->dom->appendChild($node);
-    }
+		$messageWrapper->appendChild($message);
 
-    private function parseImage($block)
-    {
-        $figure = $this->dom->createElement('figure');
+		$textWrapper->appendChild($titleWrapper);
+		$textWrapper->appendChild($messageWrapper);
 
-        $attrs = [];
+		$icon = $this->dom->createElement('i');
 
-        $caption = (!empty($block->data->caption)) ? $block->data->caption : '';
+		$wrapper->appendChild($icon);
+		$wrapper->appendChild($textWrapper);
 
-        if ($block->data->withBorder) $attrs[] = "withborder";
-        if ($block->data->withBackground) $attrs[] = "withbackground";
-        if ($block->data->stretched) $attrs[] = "stretched";
+		$this->dom->appendChild($wrapper);
+	}
 
-        $style = (count($attrs) > 0) ? implode(' ', $attrs) : false;
+	private function parseAlert($block) {
+		$alignment = isset($block->data->align) ? $block->data->align : false;
 
-        $class = $this->addClass($block->type, false, $style);
+		$style = isset($block->data->type) ? $block->data->type : false;
 
-        $figure->setAttribute('class', $class);
+		$class = $this->addClass($block->type, $alignment, $style);
 
-        $img = $this->dom->createElement('img');
+		$node = $this->dom->createElement('p');
 
-        $img->setAttribute('src', $block->data->url);
-        $img->setAttribute('alt', $caption);
-        
-        $figure->appendChild($img);
+		$node->setAttribute('class', $class);
 
-        if (!empty($caption)) {
-            $figCaption = $this->dom->createElement('figcaption');
-            $figCaption->appendChild($this->html5->loadHTMLFragment($caption));
-            $figure->appendChild($figCaption);
-        }
+		$node->appendChild(new DOMText($block->data->message));
 
-        $this->dom->appendChild($figure);
-    }
+		$this->dom->appendChild($node);
+	}
 
-    private function parseStandardImage($block)
-    {
-        $figure = $this->dom->createElement('figure');
+	private function parseImage($block) {
+		$figure = $this->dom->createElement('figure');
 
-        $attrs = [];
+		$attrs = [];
 
-        $caption = (!empty($block->data->caption)) ? $block->data->caption : '';
+		$caption = (!empty($block->data->caption)) ? $block->data->caption : '';
 
-        if ($block->data->withBorder) $attrs[] = "withborder";
-        if ($block->data->withBackground) $attrs[] = "withbackground";
-        if ($block->data->stretched) $attrs[] = "stretched";
+		if ($block->data->withBorder)
+			$attrs[] = "withborder";
+		if ($block->data->withBackground)
+			$attrs[] = "withbackground";
+		if ($block->data->stretched)
+			$attrs[] = "stretched";
 
-        $style = (count($attrs) > 0) ? implode(' ', $attrs) : false;
+		$style = (count($attrs) > 0) ? implode(' ', $attrs) : false;
 
-        $class = $this->addClass($block->type, false, $style);
+		$class = $this->addClass($block->type, false, $style);
 
-        $figure->setAttribute('class', $class);
+		$figure->setAttribute('class', $class);
 
-        $img = $this->dom->createElement('img');
+		$img = $this->dom->createElement('img');
 
-        $img->setAttribute('src', $block->data->url);
-        $img->setAttribute('alt', $caption);
-        
-        $figure->appendChild($img);
+		$img->setAttribute('src', $block->data->file->url);
+		$img->setAttribute('alt', strip_tags($caption));
 
-        if (!empty($caption)) {
-            $figCaption = $this->dom->createElement('figcaption');
-            $figCaption->appendChild($this->html5->loadHTMLFragment($caption));
-            $figure->appendChild($figCaption);
-        }
+		$figure->appendChild($img);
 
-        $this->dom->appendChild($figure);
-    }
+		if (!empty($caption)) {
+			$figCaption = $this->dom->createElement('figcaption');
+			$figCaption->appendChild($this->html5->loadHTMLFragment($caption));
+			$figure->appendChild($figCaption);
+		}
 
-    private function parseQuote($block)
-    {
-        $alignment = isset($block->data->alignment) ? $block->data->alignment : false;
+		$this->dom->appendChild($figure);
+	}
 
-        $class = $this->addClass($block->type, $alignment);
+	private function parseStandardImage($block) {
+		$figure = $this->dom->createElement('figure');
 
-        $figure = $this->dom->createElement('figure');
-        $figure->setAttribute('class', $class);
+		$attrs = [];
 
-        $blockquote = $this->dom->createElement('blockquote');
+		$caption = (!empty($block->data->caption)) ? $block->data->caption : '';
 
-        $blockquote->appendChild($this->html5->loadHTMLFragment($block->data->text));
-        $figure->appendChild($blockquote);
+		if ($block->data->withBorder)
+			$attrs[] = "withborder";
+		if ($block->data->withBackground)
+			$attrs[] = "withbackground";
+		if ($block->data->stretched)
+			$attrs[] = "stretched";
 
-        if ($block->data->caption) {
-            $figCaption = $this->dom->createElement('figcaption');
-            $figCaption->appendChild($this->html5->loadHTMLFragment($block->data->caption));
-            $figure->appendChild($figCaption);
-        }
+		$style = (count($attrs) > 0) ? implode(' ', $attrs) : false;
 
-        $this->dom->appendChild($figure);
-    }
+		$class = $this->addClass($block->type, false, $style);
 
-    private function parseTable($block)
-    {
-        $style = !empty($block->data->withHeadings) ? 'withheadings' : false;
+		$figure->setAttribute('class', $class);
 
-        $class = $this->addClass($block->type, false, $style);
+		$img = $this->dom->createElement('img');
 
-        $table = $this->dom->createElement('table');
-        $table->setAttribute('class', $class);
+		$img->setAttribute('src', $block->data->file->url);
+		$img->setAttribute('alt', strip_tags($caption));
 
-        $dataset = $block->data->content;
+		$figure->appendChild($img);
 
-        if (!empty($block->data->withHeadings)) {
-            $tr_top = $this->dom->createElement('tr');
-            $thead = $this->dom->createElement('thead');
-            // $tbody = $this->dom->createElement('tbody');
-            $thead->appendChild($tr_top);
-            $table->appendChild($thead);
-            // $table->appendChild($tbody);
+		if (!empty($caption)) {
+			$figCaption = $this->dom->createElement('figcaption');
+			$figCaption->appendChild($this->html5->loadHTMLFragment($caption));
+			$figure->appendChild($figCaption);
+		}
 
-            foreach ($block->data->content[0] as $head) {
-                $th = $this->dom->createElement('th', $head);
-                $tr_top->appendChild($th);
-            }
+		$this->dom->appendChild($figure);
+	}
 
-            // $dataset = $block->data->content;
-            unset($dataset[0]);
-        }
+	private function parseQuote($block) {
+		$alignment = isset($block->data->alignment) ? $block->data->alignment : false;
 
-        $tbody = $this->dom->createElement('tbody');
-        $table->appendChild($tbody);
+		$class = $this->addClass($block->type, $alignment);
 
-        foreach ($dataset as $data) {
-            $tr = $this->dom->createElement('tr');
-            foreach ($data as $item) {
-                $td = $this->dom->createElement('td', $item);
-                $tr->appendChild($td);
-            }
-            $tbody->appendChild($tr);
-        }
+		$figure = $this->dom->createElement('figure');
+		$figure->setAttribute('class', $class);
 
-        $this->dom->appendChild($table);
-    }
+		$blockquote = $this->dom->createElement('blockquote');
 
-    private function parseLinkTool($block)
-    {
-        $figure = $this->dom->createElement('figure');
-        $figure->setAttribute('class', $this->addClass($block->type));
+		$blockquote->appendChild($this->html5->loadHTMLFragment($block->data->text));
+		$figure->appendChild($blockquote);
 
-        $site_name = !empty($block->data->meta->site_name) ? $block->data->meta->site_name : parse_url($block->data->link, PHP_URL_HOST);
+		if ($block->data->caption) {
+			$figCaption = $this->dom->createElement('figcaption');
+			$figCaption->appendChild($this->html5->loadHTMLFragment($block->data->caption));
+			$figure->appendChild($figCaption);
+		}
 
-        $link = $this->dom->createElement('a');
-        $link->setAttribute('href', $block->data->link);
-        $link->setAttribute('target', '_blank');
+		$this->dom->appendChild($figure);
+	}
 
-        $img = $this->dom->createElement('img');
-        $img->setAttribute('src', $block->data->meta->image->url);
-        $img->setAttribute('alt', '');
+	private function parseTable($block) {
+		$style = !empty($block->data->withHeadings) ? 'withheadings' : false;
 
-        $link->appendChild($img);
+		$class = $this->addClass($block->type, false, $style);
 
-        $link_title = $this->dom->createElement('p');
-        $link_title->setAttribute('class', "{$this->prefix}_title");
-        $link_title->appendChild($this->html5->loadHTMLFragment($block->data->meta->title));
-        $link->appendChild($link_title);
+		$table = $this->dom->createElement('table');
+		$table->setAttribute('class', $class);
 
-        $link_description = $this->dom->createElement('p');
-        $link_description->setAttribute('class', "{$this->prefix}_description");
-        $link_description->appendChild($this->html5->loadHTMLFragment($block->data->meta->description));
-        $link->appendChild($link_description);
+		$dataset = $block->data->content;
 
-        $link_name = $this->dom->createElement('p');
-        $link_name->setAttribute('class', "{$this->prefix}_sitename");
-        $link_name->appendChild($this->html5->loadHTMLFragment($site_name));
-        $link->appendChild($link_name);
+		if (!empty($block->data->withHeadings)) {
+			$tr_top = $this->dom->createElement('tr');
+			$thead = $this->dom->createElement('thead');
+			// $tbody = $this->dom->createElement('tbody');
+			$thead->appendChild($tr_top);
+			$table->appendChild($thead);
+			// $table->appendChild($tbody);
 
-        $figure->appendChild($link);
+			foreach ($block->data->content[0] as $head) {
+				$th = $this->dom->createElement('th', $head);
+				$tr_top->appendChild($th);
+			}
 
-        $this->dom->appendChild($figure);
-    }
+			// $dataset = $block->data->content;
+			unset($dataset[0]);
+		}
+
+		$tbody = $this->dom->createElement('tbody');
+		$table->appendChild($tbody);
+
+		foreach ($dataset as $data) {
+			$tr = $this->dom->createElement('tr');
+			foreach ($data as $item) {
+				$td = $this->dom->createElement('td', $item);
+				$tr->appendChild($td);
+			}
+			$tbody->appendChild($tr);
+		}
+
+		$this->dom->appendChild($table);
+	}
+
+	private function parseLinkTool($block) {
+		$figure = $this->dom->createElement('figure');
+		$figure->setAttribute('class', $this->addClass($block->type));
+
+		$site_name = !empty($block->data->meta->site_name) ? $block->data->meta->site_name : parse_url($block->data->link, PHP_URL_HOST);
+
+		$link = $this->dom->createElement('a');
+		$link->setAttribute('href', $block->data->link);
+		$link->setAttribute('target', '_blank');
+
+		$img = $this->dom->createElement('img');
+		$img->setAttribute('src', $block->data->meta->image->url);
+		$img->setAttribute('alt', '');
+
+		$link->appendChild($img);
+
+		$link_title = $this->dom->createElement('p');
+		$link_title->setAttribute('class', "{$this->prefix}_title");
+		$link_title->appendChild($this->html5->loadHTMLFragment($block->data->meta->title));
+		$link->appendChild($link_title);
+
+		$link_description = $this->dom->createElement('p');
+		$link_description->setAttribute('class', "{$this->prefix}_description");
+		$link_description->appendChild($this->html5->loadHTMLFragment($block->data->meta->description));
+		$link->appendChild($link_description);
+
+		$link_name = $this->dom->createElement('p');
+		$link_name->setAttribute('class', "{$this->prefix}_sitename");
+		$link_name->appendChild($this->html5->loadHTMLFragment($site_name));
+		$link->appendChild($link_name);
+
+		$figure->appendChild($link);
+
+		$this->dom->appendChild($figure);
+	}
 }
